@@ -1,0 +1,5 @@
+Project Atlas is an internal knowledge base for FilePilot evaluations.
+The project codename is Atlas.
+The lead engineer is Maya Chen.
+The deployment region is Phoenix.
+Customer support hours are Monday to Friday, 9 AM to 5 PM.

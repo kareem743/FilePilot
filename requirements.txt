@@ -1,0 +1,7 @@
+PyQt5>=5.15
+typer
+llama-index-core
+llama-index-readers-file
+llama-index-llms-ollama
+llama-index-embeddings-ollama
+pypdf
