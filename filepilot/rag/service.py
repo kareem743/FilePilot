@@ -219,7 +219,7 @@ class RagService:
                     file_name=Path(file_path).name if file_path else "Document",
                     file_path=file_path,
                     score=getattr(source_node, "score", None),
-                    preview=preview[:280],
+                    preview=preview[:580],
                 )
             )
         return sources
