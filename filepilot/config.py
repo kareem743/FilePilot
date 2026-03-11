@@ -8,7 +8,7 @@ from pathlib import Path
 DEFAULT_CONFIG = {
     "source_path": "",
     "llm_model": "qwen3:8b",
-    "embedding_model": "nomic-embed-text",
+    "embedding_model": "BAAI/bge-small-en-v1.5",
     "ollama_base_url": "http://127.0.0.1:11434",
     "chunk_size": 700,
     "chunk_overlap": 80,
