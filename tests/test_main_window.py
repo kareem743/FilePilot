@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from PyQt5.QtCore import Qt
+from PyQt6.QtCore import Qt
 
 from filepilot.config import AppConfig
 from filepilot.rag.service import BuildResult, QueryResult, QuerySource
@@ -91,7 +91,7 @@ def test_main_window_uses_central_config_values(monkeypatch, tmp_path, qapp):
     assert window.chunk_size_input.text() == "512"
     assert window.similarity_top_k_input.text() == "5"
     assert "Persisted index found" in window.status_label.text()
-    assert window.windowFlags() & Qt.WindowStaysOnTopHint
+    assert window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint
     window.close()
 
 
@@ -233,6 +233,7 @@ def test_start_query_runs_service_and_populates_outputs(monkeypatch, tmp_path, q
                         file_name="doc.txt",
                         file_path="docs/doc.txt",
                         score=0.9,
+                        content="source preview",
                         preview="source preview",
                     )
                 ],
