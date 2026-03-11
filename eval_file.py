@@ -57,6 +57,18 @@ def _load_ragas() -> tuple[Any, list[Any], Any | None, Any | None]:
         return evaluate, metrics, None, None
 
 
+def _load_ragas_wrappers() -> tuple[Any | None, Any | None]:
+    try:
+        from ragas.integrations.llama_index import (
+            LlamaIndexEmbeddingsWrapper,
+            LlamaIndexLLMWrapper,
+        )
+
+        return LlamaIndexLLMWrapper, LlamaIndexEmbeddingsWrapper
+    except ImportError:
+        return None, None
+
+
 def _load_testset_generator() -> Any:
     try:
         from ragas.testset import TestsetGenerator
@@ -349,6 +361,8 @@ def compare_results(baseline: dict[str, Any], latest: dict[str, Any]) -> tuple[s
 
 def run_evaluation(args: SimpleNamespace) -> int:
     project_root = Path(__file__).resolve().parent
+    if not getattr(args, "source_path", None):
+        raise SystemExit("source_path is required. Pass --source-path explicitly when running evaluation.")
     config, service = _build_rag_service(project_root, args)
     dataset = load_dataset(Path(args.dataset))
 
@@ -365,7 +379,17 @@ def run_evaluation(args: SimpleNamespace) -> int:
         evaluation_dataset_cls,
         single_turn_sample_cls,
     )
-    ragas_result = evaluate(dataset=ragas_dataset, metrics=metrics)
+    llm_wrapper_cls, embeddings_wrapper_cls = _load_ragas_wrappers()
+    evaluate_kwargs: dict[str, Any] = {
+        "dataset": ragas_dataset,
+        "metrics": metrics,
+    }
+    if llm_wrapper_cls is not None and Settings.llm is not None:
+        evaluate_kwargs["llm"] = llm_wrapper_cls(Settings.llm)
+    if embeddings_wrapper_cls is not None and Settings.embed_model is not None:
+        evaluate_kwargs["embeddings"] = embeddings_wrapper_cls(Settings.embed_model)
+
+    ragas_result = evaluate(**evaluate_kwargs)
     normalized = normalize_ragas_result(ragas_result)
 
     output_dir = Path(args.output_dir)
@@ -438,6 +462,8 @@ def run_generate_dataset(args: SimpleNamespace) -> int:
 
 def run_generate_and_evaluate(args: SimpleNamespace) -> int:
     project_root = Path(__file__).resolve().parent
+    if not getattr(args, "source_path", None):
+        raise SystemExit("source_path is required. Pass --source-path explicitly when generating and evaluating.")
     dataset_path = generate_dataset_file(project_root, args)
     args.dataset = str(dataset_path)
     return run_evaluation(args)
@@ -451,7 +477,7 @@ def _make_args(**kwargs: Any) -> SimpleNamespace:
 def evaluate_cmd(
     dataset: Path = typer.Option(..., "--dataset", help="Path to dataset JSON or JSONL"),
     output_dir: Path = typer.Option("eval_results", "--output-dir", help="Directory for latest.json and reports"),
-    source_path: str | None = typer.Option(None, "--source-path", help="Override config.json source_path"),
+    source_path: str = typer.Option(..., "--source-path", help="Source file or folder to index for this evaluation run"),
     llm_model: str | None = typer.Option(None, "--llm-model", help="Override config.json llm_model"),
     embedding_model: str | None = typer.Option(None, "--embedding-model", help="Override config.json embedding_model"),
     ollama_base_url: str | None = typer.Option(None, "--ollama-base-url", help="Override config.json ollama_base_url"),
@@ -528,7 +554,7 @@ def generate_and_evaluate_cmd(
     output: Path = typer.Option("eval_dataset.json", "--output", help="Path to write the generated dataset JSON"),
     testset_size: int = typer.Option(5, "--testset-size", help="Number of question/answer pairs to generate"),
     output_dir: Path = typer.Option("eval_results", "--output-dir", help="Directory for latest.json and reports"),
-    source_path: str | None = typer.Option(None, "--source-path", help="Override config.json source_path"),
+    source_path: str = typer.Option(..., "--source-path", help="Source file or folder to use for dataset generation and evaluation"),
     llm_model: str | None = typer.Option(None, "--llm-model", help="Override config.json llm_model"),
     embedding_model: str | None = typer.Option(None, "--embedding-model", help="Override config.json embedding_model"),
     ollama_base_url: str | None = typer.Option(None, "--ollama-base-url", help="Override config.json ollama_base_url"),

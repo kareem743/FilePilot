@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import eval_file as eval_module
+import pytest
 from typer.testing import CliRunner
 
 
@@ -101,11 +102,106 @@ def test_generate_and_evaluate_uses_generated_dataset(monkeypatch, tmp_path):
 
     monkeypatch.setattr(eval_module, "run_evaluation", fake_run_evaluation)
 
-    args = Namespace()
+    args = Namespace(source_path=str(tmp_path / "source.txt"))
     exit_code = eval_module.run_generate_and_evaluate(args)
 
     assert exit_code == 0
     assert captured["dataset"] == str(generated_path)
+
+
+def test_run_evaluation_requires_explicit_source_path():
+    args = Namespace(dataset="eval_dataset.json", source_path=None)
+
+    with pytest.raises(SystemExit, match="source_path is required"):
+        eval_module.run_evaluation(args)
+
+
+def test_run_generate_and_evaluate_requires_explicit_source_path():
+    args = Namespace(source_path=None)
+
+    with pytest.raises(SystemExit, match="source_path is required"):
+        eval_module.run_generate_and_evaluate(args)
+
+
+def test_run_evaluation_uses_llamaindex_wrappers_for_ragas(monkeypatch, tmp_path):
+    dataset_path = tmp_path / "dataset.json"
+    dataset_path.write_text(
+        json.dumps(
+            [
+                {
+                    "question": "What is Atlas?",
+                    "ground_truth_answer": "Atlas is the codename.",
+                    "chunk_text_snippet": "Atlas is the codename.",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = Namespace(
+        source_path=str(tmp_path / "source.txt"),
+        llm_model="qwen3:8b",
+        embedding_model="BAAI/bge-small-en-v1.5",
+        ollama_base_url="http://127.0.0.1:11434",
+        chunk_size=256,
+        chunk_overlap=32,
+        similarity_top_k=2,
+    )
+    captured = {}
+
+    class FakeService:
+        pass
+
+    class FakeLLMWrapper:
+        def __init__(self, llm):
+            self.llm = llm
+
+    class FakeEmbeddingsWrapper:
+        def __init__(self, embeddings):
+            self.embeddings = embeddings
+
+    def fake_evaluate(**kwargs):
+        captured.update(kwargs)
+        return {"faithfulness": 1.0}
+
+    monkeypatch.setattr(eval_module, "_build_rag_service", lambda project_root, args: (config, FakeService()))
+    monkeypatch.setattr(
+        eval_module,
+        "_load_ragas",
+        lambda: (fake_evaluate, [], None, None),
+    )
+    monkeypatch.setattr(
+        eval_module,
+        "_load_ragas_wrappers",
+        lambda: (FakeLLMWrapper, FakeEmbeddingsWrapper),
+    )
+    monkeypatch.setattr(
+        eval_module,
+        "query_dataset",
+        lambda service, dataset: [{"answer": "Atlas", "contexts": ["Atlas is the codename."], "sources": []}],
+    )
+    monkeypatch.setattr(
+        eval_module,
+        "Settings",
+        SimpleNamespace(llm="fake-llm", embed_model="fake-embed"),
+    )
+
+    args = Namespace(
+        dataset=str(dataset_path),
+        output_dir=str(tmp_path / "eval_results"),
+        source_path=str(tmp_path / "source.txt"),
+        rebuild_index=False,
+        set_baseline=False,
+        compare_baseline=False,
+    )
+
+    exit_code = eval_module.run_evaluation(args)
+
+    assert exit_code == 0
+    assert isinstance(captured["llm"], FakeLLMWrapper)
+    assert captured["llm"].llm == "fake-llm"
+    assert isinstance(captured["embeddings"], FakeEmbeddingsWrapper)
+    assert captured["embeddings"].embeddings == "fake-embed"
 
 
 def test_typer_help_lists_commands():
