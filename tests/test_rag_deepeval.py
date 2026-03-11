@@ -59,7 +59,7 @@ def test_rag_pipeline_with_deepeval(tmp_path, question, expected_output):
         input=question,
         actual_output=result.answer,
         expected_output=expected_output,
-        retrieval_context=[source.preview for source in result.sources if source.preview],
+        retrieval_context=[source.content for source in result.sources if source.content],
     )
     metrics = [
         AnswerRelevancyMetric(threshold=0.5),

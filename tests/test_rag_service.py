@@ -167,7 +167,7 @@ def test_build_index_persists_index_and_counts_unique_files(monkeypatch, tmp_pat
     monkeypatch.setattr(
         service_module.VectorStoreIndex,
         "from_documents",
-        staticmethod(lambda documents: FakeIndex()),
+        staticmethod(lambda documents, **kwargs: FakeIndex()),
     )
 
     result = service.build_index()
@@ -251,6 +251,7 @@ def test_query_returns_answer_and_sources(monkeypatch, tmp_path):
     assert captured["top_k"] == config.similarity_top_k
     assert result.answer == "answer"
     assert result.sources[0].file_name == "doc.txt"
+    assert result.sources[0].content == "preview text"
     assert result.sources[0].preview == "preview text"
 
 

@@ -13,7 +13,7 @@ def test_main_builds_window_and_runs_event_loop(monkeypatch):
         def setApplicationName(self, name):
             captured["app_name"] = name
 
-        def exec_(self):
+        def exec(self):
             captured["exec_called"] = True
             return 7
 

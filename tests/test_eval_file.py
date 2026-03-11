@@ -15,7 +15,10 @@ def test_testset_to_entries_maps_ragas_rows():
         {
             "user_input": "What is Atlas?",
             "reference": "Atlas is the codename.",
-            "reference_contexts": ["Atlas is the internal codename for the project."],
+            "reference_contexts": [
+                "Atlas is the internal codename for the project.",
+                "The Atlas rollout started in Phoenix.",
+            ],
         }
     ]
 
@@ -25,9 +28,26 @@ def test_testset_to_entries_maps_ragas_rows():
         {
             "question": "What is Atlas?",
             "ground_truth_answer": "Atlas is the codename.",
+            "reference_contexts": [
+                "Atlas is the internal codename for the project.",
+                "The Atlas rollout started in Phoenix.",
+            ],
             "chunk_text_snippet": "Atlas is the internal codename for the project.",
         }
     ]
+
+
+def test_read_reference_context_prefers_all_stored_reference_contexts(tmp_path):
+    entry = {
+        "reference_contexts": [
+            "Atlas is the internal codename for the project.",
+            "The Atlas rollout started in Phoenix.",
+        ]
+    }
+
+    contexts = eval_module._read_reference_context(entry, tmp_path)
+
+    assert contexts == entry["reference_contexts"]
 
 
 def test_generate_dataset_file_saves_generated_entries(monkeypatch, tmp_path):
@@ -202,6 +222,33 @@ def test_run_evaluation_uses_llamaindex_wrappers_for_ragas(monkeypatch, tmp_path
     assert captured["llm"].llm == "fake-llm"
     assert isinstance(captured["embeddings"], FakeEmbeddingsWrapper)
     assert captured["embeddings"].embeddings == "fake-embed"
+
+
+def test_query_dataset_uses_full_source_content(monkeypatch, tmp_path):
+    config = Namespace()
+
+    class FakeService:
+        def query(self, question):
+            assert question == "What is Atlas?"
+            return eval_module.QueryResult(
+                answer="Atlas is the codename.",
+                sources=[
+                    SimpleNamespace(
+                        content="Atlas is the internal codename for the project. The rollout started in Phoenix.",
+                        preview="Atlas is the internal codename...",
+                        file_path=str(tmp_path / "source.txt"),
+                    )
+                ],
+            )
+
+    predictions = eval_module.query_dataset(
+        FakeService(),
+        [{"question": "What is Atlas?", "ground_truth_answer": "Atlas is the codename."}],
+    )
+
+    assert predictions[0]["contexts"] == [
+        "Atlas is the internal codename for the project. The rollout started in Phoenix."
+    ]
 
 
 def test_typer_help_lists_commands():
