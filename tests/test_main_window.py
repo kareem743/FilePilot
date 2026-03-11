@@ -71,6 +71,8 @@ def test_main_window_uses_central_config_values(monkeypatch, tmp_path, qapp):
         source_path="docs/manual.pdf",
         llm_model="qwen3:8b",
         embedding_model="nomic-embed-text",
+        chunk_size=512,
+        similarity_top_k=5,
     )
     store = DummyConfigStore()
 
@@ -85,6 +87,9 @@ def test_main_window_uses_central_config_values(monkeypatch, tmp_path, qapp):
     assert window.path_input.text() == "docs/manual.pdf"
     assert window.llm_model_input.text() == "qwen3:8b"
     assert window.embedding_model_input.text() == "nomic-embed-text"
+    assert "Setting" in [window.tabs.tabText(index) for index in range(window.tabs.count())]
+    assert window.chunk_size_input.text() == "512"
+    assert window.similarity_top_k_input.text() == "5"
     assert "Persisted index found" in window.status_label.text()
     assert window.windowFlags() & Qt.WindowStaysOnTopHint
     window.close()
@@ -105,6 +110,42 @@ def test_persist_config_updates_config_store(monkeypatch, tmp_path, qapp):
     assert config.llm_model == "qwen3:14b"
     assert config.embedding_model == "custom-embed"
     assert store.saved_payloads[-1]["llm_model"] == "qwen3:14b"
+    assert window.settings_llm_model_input.text() == "qwen3:14b"
+    window.close()
+
+
+def test_save_settings_updates_config_store(monkeypatch, tmp_path, qapp):
+    config = make_config(tmp_path)
+    store = DummyConfigStore()
+    messages = []
+
+    monkeypatch.setattr(window_module, "RagService", IdleService)
+    monkeypatch.setattr(
+        window_module.QMessageBox,
+        "critical",
+        lambda parent, title, message: messages.append(message),
+    )
+    window = window_module.MainWindow(config, store)
+
+    window.settings_llm_model_input.setText("qwen3:14b")
+    window.settings_embedding_model_input.setText("custom-embed")
+    window.ollama_base_url_input.setText("http://localhost:11434")
+    window.chunk_size_input.setText("256")
+    window.chunk_overlap_input.setText("32")
+    window.similarity_top_k_input.setText("4")
+    window.supported_extensions_input.setText(".txt, .md, .py")
+    window._save_settings()
+
+    assert messages == []
+    assert config.llm_model == "qwen3:14b"
+    assert config.embedding_model == "custom-embed"
+    assert config.ollama_base_url == "http://localhost:11434"
+    assert config.chunk_size == 256
+    assert config.chunk_overlap == 32
+    assert config.similarity_top_k == 4
+    assert config.supported_extensions == (".txt", ".md", ".py")
+    assert window.llm_model_input.text() == "qwen3:14b"
+    assert store.saved_payloads[-1]["chunk_size"] == 256
     window.close()
 
 

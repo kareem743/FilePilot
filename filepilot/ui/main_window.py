@@ -75,13 +75,7 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         self.setWindowTitle("FilePilot")
-        self.setMinimumSize(self._config.window_width, self._config.window_height)
-        self.resize(self._config.window_width, self._config.window_height)
-
-        flags = self.windowFlags() | Qt.Tool
-        if self._config.always_on_top:
-            flags |= Qt.WindowStaysOnTopHint
-        self.setWindowFlags(flags)
+        self._apply_window_config()
 
         central = QWidget(self)
         layout = QVBoxLayout(central)
@@ -91,12 +85,15 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget(self)
         self.load_tab = QWidget(self)
         self.ask_tab = QWidget(self)
+        self.setting_tab = QWidget(self)
 
         self.tabs.addTab(self.load_tab, "Load")
         self.tabs.addTab(self.ask_tab, "Ask")
+        self.tabs.addTab(self.setting_tab, "Setting")
 
         self._build_load_tab()
         self._build_ask_tab()
+        self._build_setting_tab()
 
         self.status_label = QLabel("Ready.", self)
         self.status_label.setObjectName("StatusLabel")
@@ -262,6 +259,54 @@ class MainWindow(QMainWindow):
 
         self.ask_button.clicked.connect(self._start_query)
 
+    def _build_setting_tab(self) -> None:
+        layout = QVBoxLayout(self.setting_tab)
+        layout.setContentsMargins(6, 6, 6, 6)
+
+        form = QFormLayout()
+        form.setSpacing(8)
+
+        self.config_path_input = QLineEdit(str(self._config.config_file), self)
+        self.config_path_input.setReadOnly(True)
+        form.addRow("Config File", self.config_path_input)
+
+        self.settings_llm_model_input = QLineEdit(self)
+        self.settings_llm_model_input.setText(self._config.llm_model)
+        form.addRow("LLM", self.settings_llm_model_input)
+
+        self.settings_embedding_model_input = QLineEdit(self)
+        self.settings_embedding_model_input.setText(self._config.embedding_model)
+        form.addRow("Embedding", self.settings_embedding_model_input)
+
+        self.ollama_base_url_input = QLineEdit(self)
+        self.ollama_base_url_input.setText(self._config.ollama_base_url)
+        form.addRow("Ollama URL", self.ollama_base_url_input)
+
+        self.chunk_size_input = QLineEdit(self)
+        self.chunk_size_input.setText(str(self._config.chunk_size))
+        form.addRow("Chunk Size", self.chunk_size_input)
+
+        self.chunk_overlap_input = QLineEdit(self)
+        self.chunk_overlap_input.setText(str(self._config.chunk_overlap))
+        form.addRow("Chunk Overlap", self.chunk_overlap_input)
+
+        self.similarity_top_k_input = QLineEdit(self)
+        self.similarity_top_k_input.setText(str(self._config.similarity_top_k))
+        form.addRow("Top K", self.similarity_top_k_input)
+
+        self.supported_extensions_input = QLineEdit(self)
+        self.supported_extensions_input.setText(", ".join(self._config.supported_extensions))
+        form.addRow("Extensions", self.supported_extensions_input)
+
+        layout.addLayout(form)
+
+        self.save_settings_button = QPushButton("Save Settings", self)
+        self.save_settings_button.setObjectName("PrimaryButton")
+        layout.addWidget(self.save_settings_button)
+        layout.addStretch(1)
+
+        self.save_settings_button.clicked.connect(self._save_settings)
+
     def showEvent(self, event) -> None:  # noqa: N802
         super().showEvent(event)
         if self._positioned:
@@ -415,6 +460,14 @@ class MainWindow(QMainWindow):
         self.ask_button.setEnabled(not busy)
         self.file_button.setEnabled(not busy)
         self.folder_button.setEnabled(not busy)
+        self.save_settings_button.setEnabled(not busy)
+        self.settings_llm_model_input.setReadOnly(busy)
+        self.settings_embedding_model_input.setReadOnly(busy)
+        self.ollama_base_url_input.setReadOnly(busy)
+        self.chunk_size_input.setReadOnly(busy)
+        self.chunk_overlap_input.setReadOnly(busy)
+        self.similarity_top_k_input.setReadOnly(busy)
+        self.supported_extensions_input.setReadOnly(busy)
 
     def _current_llm_model(self) -> str:
         return self.llm_model_input.text().strip() or self._config.llm_model
@@ -426,9 +479,94 @@ class MainWindow(QMainWindow):
         self._config.source_path = self.path_input.text().strip()
         self._config.llm_model = self._current_llm_model()
         self._config.embedding_model = self._current_embedding_model()
+        self._sync_inputs_from_config()
+        self._config_store.save(self._config)
+
+    def _apply_window_config(self) -> None:
+        self.setMinimumSize(self._config.window_width, self._config.window_height)
+        self.resize(self._config.window_width, self._config.window_height)
+
+        flags = self.windowFlags() | Qt.Tool
+        flags &= ~Qt.WindowStaysOnTopHint
+        if self._config.always_on_top:
+            flags |= Qt.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        if self.isVisible():
+            self.show()
+
+    def _sync_inputs_from_config(self) -> None:
+        self.path_input.setText(self._config.source_path)
         self.llm_model_input.setText(self._config.llm_model)
         self.embedding_model_input.setText(self._config.embedding_model)
+        self.settings_llm_model_input.setText(self._config.llm_model)
+        self.settings_embedding_model_input.setText(self._config.embedding_model)
+        self.ollama_base_url_input.setText(self._config.ollama_base_url)
+        self.chunk_size_input.setText(str(self._config.chunk_size))
+        self.chunk_overlap_input.setText(str(self._config.chunk_overlap))
+        self.similarity_top_k_input.setText(str(self._config.similarity_top_k))
+        self.supported_extensions_input.setText(", ".join(self._config.supported_extensions))
+
+    def _read_int_setting(self, widget: QLineEdit, label: str, minimum: int) -> int:
+        raw_value = widget.text().strip()
+        if not raw_value:
+            raise ValueError(f"{label} is required.")
+
+        value = int(raw_value)
+        if value < minimum:
+            raise ValueError(f"{label} must be at least {minimum}.")
+        return value
+
+    def _read_supported_extensions(self) -> tuple[str, ...]:
+        values = [
+            item.strip()
+            for item in self.supported_extensions_input.text().split(",")
+            if item.strip()
+        ]
+        if not values:
+            raise ValueError("Extensions are required.")
+        if any(not value.startswith(".") for value in values):
+            raise ValueError("Each extension must start with a dot, for example .txt")
+        return tuple(values)
+
+    def _save_settings(self) -> None:
+        try:
+            chunk_size = self._read_int_setting(self.chunk_size_input, "Chunk size", 1)
+            chunk_overlap = self._read_int_setting(self.chunk_overlap_input, "Chunk overlap", 0)
+            similarity_top_k = self._read_int_setting(self.similarity_top_k_input, "Top K", 1)
+            supported_extensions = self._read_supported_extensions()
+        except ValueError as exc:
+            self._show_error(str(exc))
+            return
+
+        if chunk_overlap >= chunk_size:
+            self._show_error("Chunk overlap must be smaller than chunk size.")
+            return
+
+        llm_model = self.settings_llm_model_input.text().strip()
+        embedding_model = self.settings_embedding_model_input.text().strip()
+        ollama_base_url = self.ollama_base_url_input.text().strip()
+
+        if not llm_model:
+            self._show_error("LLM is required.")
+            return
+        if not embedding_model:
+            self._show_error("Embedding is required.")
+            return
+        if not ollama_base_url:
+            self._show_error("Ollama URL is required.")
+            return
+
+        self._config.llm_model = llm_model
+        self._config.embedding_model = embedding_model
+        self._config.ollama_base_url = ollama_base_url
+        self._config.chunk_size = chunk_size
+        self._config.chunk_overlap = chunk_overlap
+        self._config.similarity_top_k = similarity_top_k
+        self._config.supported_extensions = supported_extensions
+
+        self._sync_inputs_from_config()
         self._config_store.save(self._config)
+        self.status_label.setText("Settings saved. Rebuild the index if chunking or model values changed.")
 
     def closeEvent(self, event) -> None:  # noqa: N802
         self._persist_config()
