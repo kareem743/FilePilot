@@ -38,7 +38,7 @@ def test_configure_settings_uses_central_config(monkeypatch, tmp_path):
             self.kwargs = kwargs
 
     monkeypatch.setattr(service_module, "Ollama", FakeOllama)
-    monkeypatch.setattr(service_module, "OllamaEmbedding", FakeEmbedding)
+    monkeypatch.setattr(service_module, "HuggingFaceEmbedding", FakeEmbedding)
     monkeypatch.setattr(service_module, "SentenceSplitter", FakeSplitter)
     monkeypatch.setattr(service_module, "Settings", fake_settings)
 
