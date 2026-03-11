@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys
-
+import torch
 from PyQt5.QtWidgets import QApplication
 
 from filepilot.config import ConfigStore
