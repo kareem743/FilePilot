@@ -82,10 +82,10 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(10)
 
-        self.tabs = QTabWidget(self)
-        self.load_tab = QWidget(self)
-        self.ask_tab = QWidget(self)
-        self.setting_tab = QWidget(self)
+        self.tabs = QTabWidget()
+        self.load_tab = QWidget()
+        self.ask_tab = QWidget()
+        self.setting_tab = QWidget()
 
         self.tabs.addTab(self.load_tab, "Load")
         self.tabs.addTab(self.ask_tab, "Ask")
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self._build_ask_tab()
         self._build_setting_tab()
 
-        self.status_label = QLabel("Ready.", self)
+        self.status_label = QLabel("Ready.")
         self.status_label.setObjectName("StatusLabel")
         self.status_label.setWordWrap(True)
 
@@ -118,16 +118,24 @@ class MainWindow(QMainWindow):
                 border: 1px solid #2a3240;
                 background: #171c24;
                 border-radius: 10px;
-                margin-top: 6px;
+                margin-top: 0px;
+            }
+            QTabWidget::tab-bar {
+                left: 4px;
+            }
+            QTabBar {
+                background: transparent;
+                qproperty-drawBase: 0;
             }
             QTabBar::tab {
                 background: #202734;
                 color: #94a1b5;
-                padding: 8px 16px;
+                padding: 8px 18px;
                 margin-right: 6px;
                 border-top-left-radius: 8px;
                 border-top-right-radius: 8px;
                 font-weight: 600;
+                min-width: 60px;
             }
             QTabBar::tab:selected {
                 background: #2a3444;
@@ -192,35 +200,35 @@ class MainWindow(QMainWindow):
         form = QFormLayout()
         form.setSpacing(8)
 
-        self.path_input = QLineEdit(self)
+        self.path_input = QLineEdit()
         self.path_input.setText(self._config.source_path)
         self.path_input.setPlaceholderText("Select a file or folder to index")
         form.addRow("Path", self.path_input)
 
-        self.llm_model_input = QLineEdit(self)
+        self.llm_model_input = QLineEdit()
         self.llm_model_input.setText(self._config.llm_model)
         form.addRow("LLM", self.llm_model_input)
 
-        self.embedding_model_input = QLineEdit(self)
+        self.embedding_model_input = QLineEdit()
         self.embedding_model_input.setText(self._config.embedding_model)
         form.addRow("Embedding", self.embedding_model_input)
 
         layout.addLayout(form)
 
         path_buttons = QHBoxLayout()
-        self.file_button = QPushButton("Browse File", self)
+        self.file_button = QPushButton("Browse File")
         self.file_button.setObjectName("SecondaryButton")
-        self.folder_button = QPushButton("Browse Folder", self)
+        self.folder_button = QPushButton("Browse Folder")
         self.folder_button.setObjectName("SecondaryButton")
         path_buttons.addWidget(self.file_button)
         path_buttons.addWidget(self.folder_button)
         layout.addLayout(path_buttons)
 
-        self.index_button = QPushButton("Build Index", self)
+        self.index_button = QPushButton("Build Index")
         self.index_button.setObjectName("PrimaryButton")
         layout.addWidget(self.index_button)
 
-        self.load_summary = QPlainTextEdit(self)
+        self.load_summary = QPlainTextEdit()
         self.load_summary.setReadOnly(True)
         self.load_summary.setPlaceholderText("Index details will appear here.")
         layout.addWidget(self.load_summary)
@@ -238,21 +246,21 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(self.ask_tab)
         layout.setContentsMargins(6, 6, 6, 6)
 
-        self.question_input = QPlainTextEdit(self)
+        self.question_input = QPlainTextEdit()
         self.question_input.setPlaceholderText("Ask a question about the indexed content")
         self.question_input.setFixedHeight(90)
         layout.addWidget(self.question_input)
 
-        self.ask_button = QPushButton("Ask", self)
+        self.ask_button = QPushButton("Ask")
         self.ask_button.setObjectName("PrimaryButton")
         layout.addWidget(self.ask_button)
 
-        self.answer_output = QPlainTextEdit(self)
+        self.answer_output = QPlainTextEdit()
         self.answer_output.setReadOnly(True)
         self.answer_output.setPlaceholderText("Answer will appear here.")
         layout.addWidget(self.answer_output)
 
-        self.sources_output = QPlainTextEdit(self)
+        self.sources_output = QPlainTextEdit()
         self.sources_output.setReadOnly(True)
         self.sources_output.setPlaceholderText("Retrieved source snippets will appear here.")
         layout.addWidget(self.sources_output)
@@ -266,41 +274,41 @@ class MainWindow(QMainWindow):
         form = QFormLayout()
         form.setSpacing(8)
 
-        self.config_path_input = QLineEdit(str(self._config.config_file), self)
+        self.config_path_input = QLineEdit(str(self._config.config_file))
         self.config_path_input.setReadOnly(True)
         form.addRow("Config File", self.config_path_input)
 
-        self.settings_llm_model_input = QLineEdit(self)
+        self.settings_llm_model_input = QLineEdit()
         self.settings_llm_model_input.setText(self._config.llm_model)
         form.addRow("LLM", self.settings_llm_model_input)
 
-        self.settings_embedding_model_input = QLineEdit(self)
+        self.settings_embedding_model_input = QLineEdit()
         self.settings_embedding_model_input.setText(self._config.embedding_model)
         form.addRow("Embedding", self.settings_embedding_model_input)
 
-        self.ollama_base_url_input = QLineEdit(self)
+        self.ollama_base_url_input = QLineEdit()
         self.ollama_base_url_input.setText(self._config.ollama_base_url)
         form.addRow("Ollama URL", self.ollama_base_url_input)
 
-        self.chunk_size_input = QLineEdit(self)
+        self.chunk_size_input = QLineEdit()
         self.chunk_size_input.setText(str(self._config.chunk_size))
         form.addRow("Chunk Size", self.chunk_size_input)
 
-        self.chunk_overlap_input = QLineEdit(self)
+        self.chunk_overlap_input = QLineEdit()
         self.chunk_overlap_input.setText(str(self._config.chunk_overlap))
         form.addRow("Chunk Overlap", self.chunk_overlap_input)
 
-        self.similarity_top_k_input = QLineEdit(self)
+        self.similarity_top_k_input = QLineEdit()
         self.similarity_top_k_input.setText(str(self._config.similarity_top_k))
         form.addRow("Top K", self.similarity_top_k_input)
 
-        self.supported_extensions_input = QLineEdit(self)
+        self.supported_extensions_input = QLineEdit()
         self.supported_extensions_input.setText(", ".join(self._config.supported_extensions))
         form.addRow("Extensions", self.supported_extensions_input)
 
         layout.addLayout(form)
 
-        self.save_settings_button = QPushButton("Save Settings", self)
+        self.save_settings_button = QPushButton("Save Settings")
         self.save_settings_button.setObjectName("PrimaryButton")
         layout.addWidget(self.save_settings_button)
         layout.addStretch(1)
