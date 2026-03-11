@@ -32,6 +32,7 @@ class QuerySource:
     file_name: str
     file_path: str
     score: float | None
+    content: str
     preview: str
 
 
@@ -66,7 +67,7 @@ class RagService:
 
         self._reset_index_dir()
         try:
-            index = VectorStoreIndex.from_documents(documents)
+            index = VectorStoreIndex.from_documents(documents,show_progress=True)
         except Exception as exc:
             raise RuntimeError(
                 self._format_ollama_error(
@@ -219,6 +220,7 @@ class RagService:
                     file_name=Path(file_path).name if file_path else "Document",
                     file_path=file_path,
                     score=getattr(source_node, "score", None),
+                    content=preview,
                     preview=preview[:580],
                 )
             )

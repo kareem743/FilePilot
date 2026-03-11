@@ -182,9 +182,10 @@ def _testset_to_entries(testset: Any) -> list[dict[str, Any]]:
             "ground_truth_answer": ground_truth,
         }
         if isinstance(contexts, list) and contexts:
-            snippet = str(contexts[0]).strip()
-            if snippet:
-                entry["chunk_text_snippet"] = snippet[:1200]
+            cleaned_contexts = [str(context).strip() for context in contexts if str(context).strip()]
+            if cleaned_contexts:
+                entry["reference_contexts"] = cleaned_contexts
+                entry["chunk_text_snippet"] = cleaned_contexts[0][:1200]
         if question and ground_truth:
             entries.append(entry)
 
@@ -230,6 +231,14 @@ def generate_dataset_file(project_root: Path, args: SimpleNamespace) -> Path:
 
 
 def _read_reference_context(entry: dict[str, Any], project_root: Path) -> list[str]:
+    stored_contexts = [
+        str(context).strip()
+        for context in (entry.get("reference_contexts") or [])
+        if str(context).strip()
+    ]
+    if stored_contexts:
+        return stored_contexts
+
     snippet = str(entry.get("chunk_text_snippet", "")).strip()
     if snippet:
         return [snippet]
@@ -301,7 +310,7 @@ def query_dataset(service: RagService, dataset: list[dict[str, Any]]) -> list[di
                 "id": idx,
                 "question": entry["question"],
                 "answer": result.answer,
-                "contexts": [source.preview for source in result.sources if source.preview],
+                "contexts": [source.content for source in result.sources if source.content],
                 "sources": [source.file_path for source in result.sources if source.file_path],
             }
         )
