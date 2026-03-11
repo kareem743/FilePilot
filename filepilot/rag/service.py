@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import multiprocessing
 from pathlib import Path
 import shutil
 
@@ -135,6 +136,31 @@ class RagService:
         return self._index
 
     def _configure_settings(self) -> None:
+        try:
+            current_llm = getattr(Settings, "llm", None)
+        except Exception:
+            current_llm = None
+        try:
+            current_embed = getattr(Settings, "embed_model", None)
+        except Exception:
+            current_embed = None
+        try:
+            current_splitter = getattr(Settings, "text_splitter", None)
+        except Exception:
+            current_splitter = None
+
+        if (
+            isinstance(current_llm, Ollama)
+            and current_llm.model == self._config.llm_model
+            and getattr(current_llm, "base_url", None) == self._config.ollama_base_url
+            and current_embed is not None
+            and getattr(current_embed, "model_name", None) == self._config.embedding_model
+            and isinstance(current_splitter, SentenceSplitter)
+            and getattr(current_splitter, "chunk_size", None) == self._config.chunk_size
+            and getattr(current_splitter, "chunk_overlap", None) == self._config.chunk_overlap
+        ):
+            return
+
         Settings.llm = Ollama(
             model=self._config.llm_model,
             base_url=self._config.ollama_base_url,
@@ -169,7 +195,7 @@ class RagService:
             filename_as_id=True,
             required_exts=list(self._config.supported_extensions),
         )
-        return reader.load_data()
+        return reader.load_data(num_workers=max(1, multiprocessing.cpu_count() - 1))
 
     def _reset_index_dir(self) -> None:
         if self._config.index_dir.exists():

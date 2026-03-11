@@ -52,6 +52,43 @@ def test_configure_settings_uses_central_config(monkeypatch, tmp_path):
     assert fake_settings.text_splitter.kwargs["chunk_size"] == config.chunk_size
 
 
+def test_configure_settings_ignores_unconfigured_settings_getters(monkeypatch, tmp_path):
+    config = make_config(tmp_path)
+    service = service_module.RagService(config)
+
+    class FakeSettings:
+        def __getattr__(self, name):
+            raise ImportError("default OpenAI resolver should not be required")
+
+    class FakeOllama:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.model = kwargs["model"]
+            self.base_url = kwargs["base_url"]
+
+    class FakeEmbedding:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.model_name = kwargs["model_name"]
+
+    class FakeSplitter:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.chunk_size = kwargs["chunk_size"]
+            self.chunk_overlap = kwargs["chunk_overlap"]
+
+    monkeypatch.setattr(service_module, "Settings", FakeSettings())
+    monkeypatch.setattr(service_module, "Ollama", FakeOllama)
+    monkeypatch.setattr(service_module, "HuggingFaceEmbedding", FakeEmbedding)
+    monkeypatch.setattr(service_module, "SentenceSplitter", FakeSplitter)
+
+    service._configure_settings()
+
+    assert service_module.Settings.llm.model == config.llm_model
+    assert service_module.Settings.embed_model.model_name == config.embedding_model
+    assert service_module.Settings.text_splitter.chunk_size == config.chunk_size
+
+
 def test_load_documents_uses_file_reader_for_single_file(monkeypatch, tmp_path):
     config = make_config(tmp_path)
     service = service_module.RagService(config)
