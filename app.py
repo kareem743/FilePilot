@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 import torch
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication
 
 from filepilot.config import ConfigStore
 from filepilot.ui.main_window import MainWindow
@@ -15,7 +15,7 @@ def main() -> int:
     config = config_store.load()
     window = MainWindow(config=config, config_store=config_store)
     window.show()
-    return app.exec_()
+    return app.exec()
 
 
 if __name__ == "__main__":

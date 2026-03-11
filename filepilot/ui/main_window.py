@@ -8,9 +8,9 @@ from typing import Any, Callable
 from filepilot.config import AppConfig, ConfigStore
 from filepilot.rag.service import BuildResult, QueryResult, RagService
 
-from PyQt5.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
@@ -494,10 +494,10 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(self._config.window_width, self._config.window_height)
         self.resize(self._config.window_width, self._config.window_height)
 
-        flags = self.windowFlags() | Qt.Tool
-        flags &= ~Qt.WindowStaysOnTopHint
+        flags = self.windowFlags() | Qt.WindowType.Tool
+        flags &= ~Qt.WindowType.WindowStaysOnTopHint
         if self._config.always_on_top:
-            flags |= Qt.WindowStaysOnTopHint
+            flags |= Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
         if self.isVisible():
             self.show()

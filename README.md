@@ -1,6 +1,6 @@
 # FilePilot
 
-Basic desktop RAG app built with PyQt5, LlamaIndex, and Ollama.
+Basic desktop RAG app built with PyQt6, LlamaIndex, and Ollama.
 
 ## What it does
 
