@@ -8,14 +8,14 @@ Basic desktop RAG app built with PyQt5, LlamaIndex, and Ollama.
 - Load a local file or folder
 - Build a local persisted RAG index with LlamaIndex
 - Ask questions against the indexed content
-- Use Ollama locally for both the LLM and embeddings
+- Use Ollama locally for the LLM
+- Use a Hugging Face embedding model locally for embeddings
 
 ## Basic setup
 
 1. Install Ollama and start it.
 2. Pull the default models:
    - `ollama pull llama3.2`
-   - `ollama pull nomic-embed-text`
 3. Install Python dependencies:
    - `pip install -r requirements.txt`
 4. Run the app:
@@ -56,3 +56,4 @@ The UI reads from that file and writes back to it. There is no separate model st
 - PDFs require `pypdf`.
 - The app stores its index and state under `data/`.
 - Rebuild the index if you change the embedding model.
+- Embeddings use Hugging Face locally; they do not go through Ollama.
