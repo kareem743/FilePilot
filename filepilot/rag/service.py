@@ -7,8 +7,12 @@ import shutil
 from llama_index.core import Settings, SimpleDirectoryReader, StorageContext, VectorStoreIndex
 from llama_index.core import load_index_from_storage
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
+
+try:
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+except ImportError:
+    HuggingFaceEmbedding = None
 
 from filepilot.config import AppConfig
 
@@ -137,9 +141,13 @@ class RagService:
             request_timeout=120.0,
             temperature=0.1,
         )
-        Settings.embed_model = OllamaEmbedding(
+        if HuggingFaceEmbedding is None:
+            raise RuntimeError(
+                "Hugging Face embeddings are not installed. Install them with: "
+                "pip install llama-index-embeddings-huggingface"
+            )
+        Settings.embed_model = HuggingFaceEmbedding(
             model_name=self._config.embedding_model,
-            base_url=self._config.ollama_base_url,
         )
         Settings.text_splitter = SentenceSplitter(
             chunk_size=self._config.chunk_size,
@@ -198,6 +206,9 @@ class RagService:
     ) -> str:
         message = str(exc).strip() or exc.__class__.__name__
         lowered = message.lower()
+
+        if operation == "embedding":
+            return f"Embedding model '{model_name}' failed: {message}"
 
         if "runner process has terminated" in lowered:
             return (
