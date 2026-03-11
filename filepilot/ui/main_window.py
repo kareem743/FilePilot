@@ -5,6 +5,9 @@ from pathlib import Path
 import traceback
 from typing import Any, Callable
 
+from filepilot.config import AppConfig, ConfigStore
+from filepilot.rag.service import BuildResult, QueryResult, RagService
+
 from PyQt5.QtCore import QObject, QRunnable, Qt, QThreadPool, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import (
@@ -21,9 +24,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from filepilot.config import AppConfig, ConfigStore
-from filepilot.rag.service import BuildResult, QueryResult, RagService
 
 
 class WorkerSignals(QObject):
